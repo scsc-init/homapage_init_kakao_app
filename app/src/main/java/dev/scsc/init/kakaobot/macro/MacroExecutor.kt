@@ -1,0 +1,113 @@
+package dev.scsc.init.kakaobot.macro
+
+import android.accessibilityservice.AccessibilityService
+import android.os.Bundle
+import android.view.accessibility.AccessibilityNodeInfo
+import dev.scsc.init.kakaobot.macro.action.ClickNavAction
+
+class MacroExecutor(private val service: AccessibilityService) {
+    enum class Action {
+        CLICK_TEXT
+    }
+
+    fun executeMacro(action: Action, extras: Bundle?) {
+        when (action) {
+            Action.CLICK_TEXT -> {
+                val text = extras?.getString("targetText") ?: return
+                val title = text.toMainTabTitleOrNull() ?: return
+                ClickNavAction(title).execute(this)
+            }
+
+        }
+    }
+
+    val rootInActiveWindow: AccessibilityNodeInfo? get() = service.rootInActiveWindow
+    val currentTabTitle: MainTabTitle?
+        get() {
+            val tabNode = rootInActiveWindow?.getChild(0)?.getChild(0)
+            if (tabNode == null || tabNode.className != "android.widget.TextView") return null
+            return tabNode.text.toString().toMainTabTitleOrNull()
+        }
+
+    enum class TextMatchOption {
+        CONTAINS,
+        EXACT
+    }
+
+    /**
+     * Searches the subtree rooted at [rootNode] for all nodes whose 'text' attribute
+     * matches the given [searchText] based on the [matchOption].
+     *
+     * This function strictly checks the 'text' property and explicitly ignores
+     * the 'contentDescription' property (which corresponds to 'desc' in the XML structure).
+     *
+     * @param rootNode The starting node for the search (e.g., the root view).
+     * @param searchText The text to search for (case-sensitive by default).
+     * @param matchOption The criteria for matching the text (defaults to CONTAINS).
+     * @return A list of AccessibilityNodeInfo objects whose 'text' matches the search string.
+     */
+    fun findNodeInfosByText(
+        rootNode: AccessibilityNodeInfo?,
+        searchText: String,
+        matchOption: TextMatchOption = TextMatchOption.EXACT
+    ): List<AccessibilityNodeInfo> {
+        val foundNodes = mutableListOf<AccessibilityNodeInfo>()
+
+        // Internal recursive function to perform a Depth-First Search (DFS)
+        fun searchRecursively(node: AccessibilityNodeInfo?) {
+            if (node == null || searchText.isEmpty()) return
+            val nodeText = node.text?.toString()
+
+            if (nodeText != null) {
+                val isMatch = when (matchOption) {
+                    TextMatchOption.CONTAINS -> nodeText.contains(searchText, ignoreCase = false)
+                    TextMatchOption.EXACT -> nodeText == searchText
+                }
+                if (isMatch) {
+                    foundNodes.add(node)
+                }
+            }
+
+            val childCount = node.childCount
+            for (i in 0 until childCount) {
+                val child = node.getChild(i) ?: continue
+                searchRecursively(child)
+            }
+        }
+
+        searchRecursively(rootNode)
+        return foundNodes
+    }
+
+    fun findBottomTabNavNode(title: MainTabTitle): AccessibilityNodeInfo? {
+        val root = rootInActiveWindow ?: return null
+        if (root.childCount != 2) return null
+        val nav = root.getChild(1) ?: return null
+        val textNodes = findNodeInfosByText(nav, title.str)
+        if (textNodes.size != 1) return null
+        val textNode = textNodes.getOrNull(0) ?: return null
+        return findNearestClickableParent(textNode)
+    }
+
+
+    fun findNearestClickableParent(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var cur: AccessibilityNodeInfo? = node
+        while (cur != null) {
+            if (cur.isClickable) {
+                return cur
+            }
+            cur = cur.parent
+        }
+        return null
+    }
+}
+
+enum class MainTabTitle(val str: String) {
+    FRIEND("친구"),
+    CHAT("채팅"),
+    OPEN_CHAT("오픈채팅"),
+    SHOP("쇼핑"),
+    MORE("더보기")
+}
+
+fun String.toMainTabTitleOrNull(): MainTabTitle? = MainTabTitle.entries.find { it.str == this }

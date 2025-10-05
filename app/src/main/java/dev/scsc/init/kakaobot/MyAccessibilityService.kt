@@ -1,55 +1,55 @@
 package dev.scsc.init.kakaobot
 
+//noinspection SuspiciousImport
+import android.R
 import android.accessibilityservice.AccessibilityService
-import android.util.Log
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
+import androidx.core.app.NotificationCompat
+import dev.scsc.init.kakaobot.macro.MacroExecutor
+
 
 class MyAccessibilityService : AccessibilityService() {
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
-
-        Log.d(
-            "a11y event",
-            event.eventType.toString() + event.text.toString() + event.source?.paneTitle
+    private val macroExecutor = MacroExecutor(this)
+    override fun onCreate() {
+        super.onCreate()
+        createNotification(
+            "Service Created",
+            "Service Created"
         )
-        if (targetText == null) return
-
-        val rootNode = rootInActiveWindow
-        if (rootNode == null) return
-
-        // Find and click the text
-        findAndClickText(rootNode, targetText)
     }
 
-    private fun findAndClickText(
-        node: AccessibilityNodeInfo?,
-        text: String?,
-    ) {
-        if (node == null) return
+    private fun createNotification(title: String, content: String) {
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager?
+        val intent = Intent(this, MainActivity::class.java)
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val builder = NotificationCompat.Builder(this, "my_channel_id")
+            .setSmallIcon(R.drawable.ic_dialog_info) // Your app's notification icon
+            .setContentTitle(title)
+            .setContentText(content)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent) // Set the action for tapping
+            .setAutoCancel(true) // Dismiss the notification when tapped
+        val notificationId = System.currentTimeMillis().toInt() // A unique ID for your notification
+        notificationManager?.notify(notificationId, builder.build())
+    }
 
-        val nodeText = node.getText()
-        if (nodeText != null && nodeText.toString() == text) {
-            var cur = node
-            while (cur != null) {
-                Log.d("node text", cur.text?.toString() ?: "null")
-                if (cur.isClickable) {
-                    cur.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    targetText = null // reset after clicking
-                    return
-                }
-                cur = cur.parent
-            }
-        }
-
-        for (i in 0..<node.childCount) {
-            findAndClickText(node.getChild(i), text)
-        }
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event == null) return
+        val bundle = Bundle()
+        bundle.putString("targetText", targetText)
+        macroExecutor.executeMacro(MacroExecutor.Action.CLICK_TEXT, bundle)
+        targetText = null
     }
 
     override fun onInterrupt() {}
 
     companion object {
+        @Volatile
         private var targetText: String? = null
 
         fun setTargetText(text: String?) {

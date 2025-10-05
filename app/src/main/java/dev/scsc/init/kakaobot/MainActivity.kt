@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
         }
-
+        
         setContent {
             MacroAppUI { inputText ->
                 if (inputText.isNotBlank()) {
