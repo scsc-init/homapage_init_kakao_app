@@ -1,5 +1,5 @@
 package dev.scsc.init.kakaobot.macro
 
 interface MacroAction {
-    fun execute(executor: MacroExecutor)
+    suspend fun execute(executor: MacroExecutor)
 }

@@ -1,17 +1,24 @@
 package dev.scsc.init.kakaobot
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -23,11 +30,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import dev.scsc.init.kakaobot.util.AccessibilityUtil
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         // Check and request accessibility permission
         if (!AccessibilityUtil.isAccessibilityServiceEnabled(
@@ -40,20 +50,63 @@ class MainActivity : ComponentActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
         }
-        
+
         setContent {
-            MacroAppUI { inputText ->
-                if (inputText.isNotBlank()) {
-                    // Pass text to AccessibilityService
-                    MyAccessibilityService.setTargetText(inputText)
-                    // Launch KakaoTalk
-                    val launchIntent = packageManager.getLaunchIntentForPackage("com.kakao.talk")
-                    if (launchIntent != null) {
-                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        startActivity(launchIntent)
+            Box(Modifier.safeDrawingPadding()) {
+                PushGrantButton { requestPushPermission() }
+                MacroAppUI { inputText ->
+                    if (!AccessibilityUtil.isAccessibilityServiceEnabled(
+                            this@MainActivity,
+                            MyAccessibilityService::class.java,
+                        )
+                    ) {
+                        Toast
+                            .makeText(
+                                this@MainActivity,
+                                "Please enable the accessibility service first.",
+                                Toast.LENGTH_LONG,
+                            )
+                            .show()
+                        return@MacroAppUI
+                    }
+                    if (inputText.isNotBlank()) {
+                        // Pass text to AccessibilityService
+                        val intent = Intent(this@MainActivity, MyAccessibilityService::class.java)
+                        intent.action = MyAccessibilityService.ACTION_RUN_MACRO
+                        intent.putExtra("targetText", inputText)
+                        this@MainActivity.startService(intent)
                     }
                 }
             }
+        }
+    }
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(RequestPermission()) { isGranted ->
+            if (isGranted) {
+                // Permission granted, you can now send notifications
+                Toast
+                    .makeText(this, "Push permission granted.", Toast.LENGTH_LONG)
+                    .show()
+            } else {
+                Toast
+                    .makeText(this, "Please grant push permission", Toast.LENGTH_LONG)
+                    .show()
+            }
+        }
+
+    private fun requestPushPermission() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Use the launcher declared as a class property
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            Toast
+                .makeText(this, "Push permission has already granted", Toast.LENGTH_LONG)
+                .show()
         }
     }
 }
@@ -85,5 +138,12 @@ fun MacroAppUI(onRunClicked: (String) -> Unit) {
         ) {
             Text("Run Macro")
         }
+    }
+}
+
+@Composable
+fun PushGrantButton(onClick: () -> Unit) {
+    Button(onClick) {
+        Text("Grant Push Permission")
     }
 }

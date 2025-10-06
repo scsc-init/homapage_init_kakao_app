@@ -1,23 +1,76 @@
 package dev.scsc.init.kakaobot.macro
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
+import dev.scsc.init.kakaobot.MyApplication
 import dev.scsc.init.kakaobot.macro.action.ClickNavAction
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class MacroExecutor(private val service: AccessibilityService) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val myApplication get() = service.application as MyApplication?
+
+    /**
+     * Call this method when the AccessibilityService is being destroyed
+     * to clean up all running coroutines.
+     */
+    fun cancelAll() {
+        scope.cancel()
+    }
+
+    @Volatile
+    var isBusy: Boolean = false
+        private set
+
     enum class Action {
         CLICK_TEXT
     }
 
     fun executeMacro(action: Action, extras: Bundle?) {
-        when (action) {
-            Action.CLICK_TEXT -> {
-                val text = extras?.getString("targetText") ?: return
-                val title = text.toMainTabTitleOrNull() ?: return
-                ClickNavAction(title).execute(this)
-            }
+        if (isBusy) {
+            myApplication?.createNotification(
+                "Error on executeMacro",
+                "Executor is busy now"
+            )
+            return
+        }
+        scope.launch {
+            isBusy = true
+            try {
+                // Launch KakaoTalk
+                val ctx = service.applicationContext ?: return@launch
+                val launchIntent = ctx.packageManager.getLaunchIntentForPackage("com.kakao.talk")
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    ctx.startActivity(launchIntent)
+                } else {
+                    myApplication?.createNotification(
+                        "Error on executeMacro",
+                        "KakaoTalk is not installed"
+                    )
+                }
+                // Execute action
+                when (action) {
+                    Action.CLICK_TEXT -> {
+                        val text = extras?.getString("targetText") ?: return@launch
+                        val title = text.toMainTabTitleOrNull() ?: return@launch
 
+                        ClickNavAction(title).execute(this@MacroExecutor)
+                    }
+
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                myApplication?.createNotification("Error on executeMacro", "$action")
+            } finally {
+                isBusy = false
+            }
         }
     }
 
