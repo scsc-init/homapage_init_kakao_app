@@ -54,8 +54,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            Box(Modifier.safeDrawingPadding()) {
-                PushGrantButton { requestPushPermission() }
+            Box(
+                Modifier
+                    .safeDrawingPadding()
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                PushGrantButton(Modifier.fillMaxWidth()) { requestPushPermission() }
                 MacroAppUI { inputText ->
                     if (!AccessibilityUtil.isAccessibilityServiceEnabled(
                             this@MainActivity,
@@ -119,10 +124,7 @@ fun MacroAppUI(onRunClicked: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -145,8 +147,8 @@ fun MacroAppUI(onRunClicked: (String) -> Unit) {
 }
 
 @Composable
-fun PushGrantButton(onClick: () -> Unit) {
-    Button(onClick) {
+fun PushGrantButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Button(onClick = onClick, modifier = modifier) {
         Text("Grant Push Permission")
     }
 }

@@ -38,8 +38,8 @@ class MacroExecutor(private val service: AccessibilityService) {
             )
             return
         }
+        isBusy = true
         scope.launch {
-            isBusy = true
             try {
                 // Launch KakaoTalk
                 val ctx = service.applicationContext ?: return@launch
