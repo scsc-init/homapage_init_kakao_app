@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Parcelable
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import dev.scsc.init.kakaobot.macro.MacroActionType
 import dev.scsc.init.kakaobot.util.AccessibilityUtil
 
 
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
                         // Pass text to AccessibilityService
                         val intent = Intent(this@MainActivity, MyAccessibilityService::class.java)
                         intent.action = MyAccessibilityService.ACTION_RUN_MACRO
+                        intent.putExtra("macroActionType", MacroActionType.CLICK_TEXT as Parcelable)
                         intent.putExtra("targetText", inputText)
                         this@MainActivity.startService(intent)
                     }

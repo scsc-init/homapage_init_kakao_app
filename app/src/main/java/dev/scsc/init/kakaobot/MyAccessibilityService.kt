@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
+import dev.scsc.init.kakaobot.macro.MacroActionType
 import dev.scsc.init.kakaobot.macro.MacroExecutor
 
 
@@ -30,12 +31,15 @@ class MyAccessibilityService : AccessibilityService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_RUN_MACRO) {
+            val macroActionType =
+                intent.getParcelableExtra("macroActionType", MacroActionType::class.java)
+                    ?: return START_NOT_STICKY
             val intentExtras: Bundle? = intent.extras
             val macroDataBundle = Bundle()
             if (intentExtras != null) {
                 macroDataBundle.putAll(intentExtras)
             }
-            macroExecutor.executeMacro(MacroExecutor.Action.CLICK_TEXT, macroDataBundle)
+            macroExecutor.executeMacro(macroActionType, macroDataBundle)
         }
         return START_NOT_STICKY
     }

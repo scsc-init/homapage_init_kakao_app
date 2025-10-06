@@ -3,6 +3,7 @@ package dev.scsc.init.kakaobot.macro
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.MyApplication
 import dev.scsc.init.kakaobot.macro.action.ClickNavAction
@@ -11,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.Parcelize
 
 class MacroExecutor(private val service: AccessibilityService) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -28,11 +30,7 @@ class MacroExecutor(private val service: AccessibilityService) {
     var isBusy: Boolean = false
         private set
 
-    enum class Action {
-        CLICK_TEXT
-    }
-
-    fun executeMacro(action: Action, extras: Bundle?) {
+    fun executeMacro(macroActionType: MacroActionType, extras: Bundle?) {
         if (isBusy) {
             myApplication?.createNotification(
                 "Error on executeMacro",
@@ -73,9 +71,9 @@ class MacroExecutor(private val service: AccessibilityService) {
                     )
                     return@launch
                 }
-                // Execute action
-                when (action) {
-                    Action.CLICK_TEXT -> {
+                // Execute macroAction
+                when (macroActionType) {
+                    MacroActionType.CLICK_TEXT -> {
                         val text = extras?.getString("targetText") ?: return@launch
                         val title = text.toMainTabTitleOrNull() ?: return@launch
 
@@ -85,7 +83,7 @@ class MacroExecutor(private val service: AccessibilityService) {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                myApplication?.createNotification("Error on executeMacro", "$action")
+                myApplication?.createNotification("Error on executeMacro", "$macroActionType")
             } finally {
                 isBusy = false
             }
@@ -171,6 +169,12 @@ class MacroExecutor(private val service: AccessibilityService) {
         }
         return null
     }
+}
+
+
+@Parcelize
+enum class MacroActionType : Parcelable {
+    CLICK_TEXT
 }
 
 enum class MainTabTitle(val str: String) {
