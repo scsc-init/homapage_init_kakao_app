@@ -30,10 +30,12 @@ class MyAccessibilityService : AccessibilityService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_RUN_MACRO) {
-            val targetText = intent.getStringExtra("targetText") ?: return START_NOT_STICKY
-            val bundle = Bundle()
-            bundle.putString("targetText", targetText)
-            macroExecutor.executeMacro(MacroExecutor.Action.CLICK_TEXT, bundle)
+            val intentExtras: Bundle? = intent.extras
+            val macroDataBundle = Bundle()
+            if (intentExtras != null) {
+                macroDataBundle.putAll(intentExtras)
+            }
+            macroExecutor.executeMacro(MacroExecutor.Action.CLICK_TEXT, macroDataBundle)
         }
         return START_NOT_STICKY
     }

@@ -10,7 +10,7 @@ import kotlinx.coroutines.withContext
 
 class ClickNavAction(val title: MainTabTitle) : MacroAction {
     override suspend fun execute(executor: MacroExecutor) {
-        delay(2000)
+        delay(100)
         withContext(Dispatchers.Main.immediate) {
             val clickNode = executor.findBottomTabNavNode(title) ?: return@withContext
             clickNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
