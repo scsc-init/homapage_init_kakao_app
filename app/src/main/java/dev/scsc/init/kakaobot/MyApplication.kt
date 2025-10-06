@@ -1,7 +1,5 @@
 package dev.scsc.init.kakaobot
 
-//noinspection SuspiciousImport
-import android.R
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -40,7 +38,7 @@ class MyApplication : Application() {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(this, channel)
-            .setSmallIcon(R.drawable.ic_dialog_info) // Your app's notification icon
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // Your app's notification icon
             .setContentTitle(title)
             .setContentText(content)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

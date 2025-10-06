@@ -1,6 +1,5 @@
 package dev.scsc.init.kakaobot
 
-//noinspection SuspiciousImport
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Bundle
@@ -39,6 +38,7 @@ class MyAccessibilityService : AccessibilityService() {
         return START_NOT_STICKY
     }
 
+    // Not using accessibility events - macros are triggered via onStartCommand
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
     override fun onInterrupt() {}
 }

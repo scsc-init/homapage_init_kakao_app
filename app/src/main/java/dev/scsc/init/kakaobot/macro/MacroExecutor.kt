@@ -49,11 +49,29 @@ class MacroExecutor(private val service: AccessibilityService) {
                 if (launchIntent != null) {
                     launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     ctx.startActivity(launchIntent)
+                    // Wait for KakaoTalk to be ready
+                    var attempts = 0
+                    val maxAttempts = 30 // 3 seconds
+                    while (attempts < maxAttempts) {
+                        kotlinx.coroutines.delay(100)
+                        if (rootInActiveWindow?.packageName == "com.kakao.talk") {
+                            break
+                        }
+                        attempts++
+                    }
+                    if (attempts >= maxAttempts) {
+                        myApplication?.createNotification(
+                            "Error on executeMacro",
+                            "KakaoTalk did not launch in time"
+                        )
+                        return@launch
+                    }
                 } else {
                     myApplication?.createNotification(
                         "Error on executeMacro",
                         "KakaoTalk is not installed"
                     )
+                    return@launch
                 }
                 // Execute action
                 when (action) {
