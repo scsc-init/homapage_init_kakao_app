@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Kakaobot</string>
+    <string name="accessibility_service_description">카카오톡 봇 실행을 위해 접근성 권한이 필요합니다.</string>
 </resources>

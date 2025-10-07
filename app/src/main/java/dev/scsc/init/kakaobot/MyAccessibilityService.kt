@@ -1,0 +1,50 @@
+package dev.scsc.init.kakaobot
+
+import android.accessibilityservice.AccessibilityService
+import android.content.Intent
+import android.os.Bundle
+import android.view.accessibility.AccessibilityEvent
+import dev.scsc.init.kakaobot.macro.MacroActionType
+import dev.scsc.init.kakaobot.macro.MacroExecutor
+
+
+class MyAccessibilityService : AccessibilityService() {
+    private val macroExecutor = MacroExecutor(this)
+    private val myApplication get() = application as MyApplication?
+
+    companion object {
+        const val ACTION_RUN_MACRO = "dev.scsc.kakaobot.ACTION_RUN_MACRO"
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        myApplication?.createNotification(
+            "Service Created",
+            "Service Created"
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        macroExecutor.cancelAll()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_RUN_MACRO) {
+            val macroActionType =
+                intent.getParcelableExtra("macroActionType", MacroActionType::class.java)
+                    ?: return START_NOT_STICKY
+            val intentExtras: Bundle? = intent.extras
+            val macroDataBundle = Bundle()
+            if (intentExtras != null) {
+                macroDataBundle.putAll(intentExtras)
+            }
+            macroExecutor.executeMacro(macroActionType, macroDataBundle)
+        }
+        return START_NOT_STICKY
+    }
+
+    // Not using accessibility events - macros are triggered via onStartCommand
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onInterrupt() {}
+}
