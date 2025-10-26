@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.MyApplication
 import dev.scsc.init.kakaobot.macro.action.ClickNavAction
@@ -73,7 +74,7 @@ class MacroExecutor(private val service: AccessibilityService) {
                 }
                 // Execute macroAction
                 when (macroActionType) {
-                    MacroActionType.CLICK_TEXT -> {
+                    MacroActionType.CLICK_NAV -> {
                         val text = extras?.getString("targetText") ?: return@launch
                         val title = text.toMainTabTitleOrNull() ?: return@launch
 
@@ -103,8 +104,13 @@ class MacroExecutor(private val service: AccessibilityService) {
         EXACT
     }
 
+    enum class SearchByOption {
+        TEXT,
+        DESC
+    }
+
     /**
-     * Searches the subtree rooted at [rootNode] for all nodes whose 'text' attribute
+     * Searches the subtree rooted at [rootNode] for all nodes whose [searchByOption] attribute
      * matches the given [searchText] based on the [matchOption].
      *
      * This function strictly checks the 'text' property and explicitly ignores
@@ -113,24 +119,33 @@ class MacroExecutor(private val service: AccessibilityService) {
      * @param rootNode The starting node for the search (e.g., the root view).
      * @param searchText The text to search for (case-sensitive by default).
      * @param matchOption The criteria for matching the text (defaults to CONTAINS).
+     * @param searchByOption The criteria for target attribute (defaults to TEXT).
      * @return A list of AccessibilityNodeInfo objects whose 'text' matches the search string.
      */
     fun findNodeInfosByText(
         rootNode: AccessibilityNodeInfo?,
         searchText: String,
-        matchOption: TextMatchOption = TextMatchOption.EXACT
+        matchOption: TextMatchOption = TextMatchOption.EXACT,
+        searchByOption: SearchByOption = SearchByOption.TEXT
     ): List<AccessibilityNodeInfo> {
         val foundNodes = mutableListOf<AccessibilityNodeInfo>()
 
         // Internal recursive function to perform a Depth-First Search (DFS)
         fun searchRecursively(node: AccessibilityNodeInfo?) {
             if (node == null || searchText.isEmpty()) return
-            val nodeText = node.text?.toString()
+            val searchTarget = when (searchByOption) {
+                SearchByOption.TEXT -> node.text?.toString()
+                SearchByOption.DESC -> node.contentDescription?.toString()
+            }
 
-            if (nodeText != null) {
+            if (searchTarget != null) {
                 val isMatch = when (matchOption) {
-                    TextMatchOption.CONTAINS -> nodeText.contains(searchText, ignoreCase = false)
-                    TextMatchOption.EXACT -> nodeText == searchText
+                    TextMatchOption.CONTAINS -> searchTarget.contains(
+                        searchText,
+                        ignoreCase = false
+                    )
+
+                    TextMatchOption.EXACT -> searchTarget == searchText
                 }
                 if (isMatch) {
                     foundNodes.add(node)
@@ -152,7 +167,11 @@ class MacroExecutor(private val service: AccessibilityService) {
         val root = rootInActiveWindow ?: return null
         if (root.childCount != 2) return null
         val nav = root.getChild(1) ?: return null
-        val textNodes = findNodeInfosByText(nav, title.str)
+        val textNodes = findNodeInfosByText(
+            nav, title.str, TextMatchOption.CONTAINS,
+            SearchByOption.DESC
+        )
+        Log.d("test", "${textNodes.size}")
         if (textNodes.size != 1) return null
         val textNode = textNodes.getOrNull(0) ?: return null
         return findNearestClickableParent(textNode)
@@ -174,15 +193,15 @@ class MacroExecutor(private val service: AccessibilityService) {
 
 @Parcelize
 enum class MacroActionType : Parcelable {
-    CLICK_TEXT
+    CLICK_NAV
 }
 
 enum class MainTabTitle(val str: String) {
-    FRIEND("친구"),
-    CHAT("채팅"),
+    FRIEND("친구 탭"),
+    CHAT("채팅 탭"),
     OPEN_CHAT("오픈채팅"),
-    SHOP("쇼핑"),
-    MORE("더보기")
+    SHOP("쇼핑 탭"),
+    MORE("더보기 탭")
 }
 
 fun String.toMainTabTitleOrNull(): MainTabTitle? = MainTabTitle.entries.find { it.str == this }
