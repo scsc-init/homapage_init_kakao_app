@@ -5,7 +5,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.macro.MacroAction
 import dev.scsc.init.kakaobot.macro.MacroExecutor
 import dev.scsc.init.kakaobot.macro.MainTabTitle
-import dev.scsc.init.kakaobot.macro.action.ClickNavAction
+import dev.scsc.init.kakaobot.macro.action.helper.ClickNavAction
 
 class AddFriendAction(val name: String, val phone: String) : MacroAction {
     override suspend fun execute(executor: MacroExecutor) {

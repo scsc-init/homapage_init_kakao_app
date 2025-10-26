@@ -7,8 +7,9 @@ import android.os.Parcelable
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.MyApplication
-import dev.scsc.init.kakaobot.macro.action.ClickNavAction
 import dev.scsc.init.kakaobot.macro.action.friend.AddFriendAction
+import dev.scsc.init.kakaobot.macro.action.helper.ClickNavAction
+import dev.scsc.init.kakaobot.macro.action.regularchat.CreateRegularChatAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -78,15 +79,27 @@ class MacroExecutor(private val service: AccessibilityService) {
                 // Execute macroAction
                 when (macroActionType) {
                     MacroActionType.CLICK_NAV -> {
-                        val text = extras?.getString("targetText") ?: return@launch
-                        val title = text.toMainTabTitleOrNull() ?: return@launch
+                        val text = extras?.getString("targetText")
+                            ?: throw IllegalArgumentException("cannot get targetText")
+                        val title = text.toMainTabTitleOrNull()
+                            ?: throw IllegalArgumentException("invalid tab name")
                         ClickNavAction(title).execute(this@MacroExecutor)
                     }
 
                     MacroActionType.ADD_FRIEND -> {
-                        val name = extras?.getString("name") ?: return@launch
-                        val phone = extras.getString("phone") ?: return@launch
+                        val name = extras?.getString("name")
+                            ?: throw IllegalArgumentException("cannot get name")
+                        val phone = extras.getString("phone")
+                            ?: throw IllegalArgumentException("cannot get phone")
                         AddFriendAction(name, phone).execute(this@MacroExecutor)
+                    }
+
+                    MacroActionType.CREATE_REGULAR_CHAT -> {
+                        val roomName = extras?.getString("roomName")
+                            ?: throw IllegalArgumentException("cannot get roomName")
+                        val friends = extras.getStringArrayList("friends")
+                            ?: throw IllegalArgumentException("cannot get friends")
+                        CreateRegularChatAction(roomName, friends).execute(this@MacroExecutor)
                     }
                 }
             } catch (e: Exception) {
@@ -101,6 +114,11 @@ class MacroExecutor(private val service: AccessibilityService) {
     val rootInActiveWindow: AccessibilityNodeInfo
         get() = service.rootInActiveWindow
             ?: throw IllegalStateException("cannot retrieve rootInActiveWindow")
+
+    val focusInputNode: AccessibilityNodeInfo
+        get() = service.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            ?: throw IllegalStateException("cannot retrieve focusInputNode")
+
 
     enum class TextMatchOption {
         CONTAINS,
@@ -224,6 +242,7 @@ class MacroExecutor(private val service: AccessibilityService) {
             ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
 
     suspend fun retryUntilTrue(throwOnFailure: Boolean = false, f: () -> Boolean): Boolean {
+        delay(performDelay)
         for (i in 0..performRetry) {
             delay(performDelay * i)
             val res = runCatching { f() }.getOrElse {
@@ -242,6 +261,7 @@ class MacroExecutor(private val service: AccessibilityService) {
 @Parcelize
 enum class MacroActionType : Parcelable {
     CLICK_NAV,
+    CREATE_REGULAR_CHAT,
     ADD_FRIEND
 }
 

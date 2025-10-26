@@ -37,12 +37,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import dev.scsc.init.kakaobot.ui.screen.AddFriendObj
-import dev.scsc.init.kakaobot.ui.screen.AddFriendScreen
-import dev.scsc.init.kakaobot.ui.screen.ClickNavObj
-import dev.scsc.init.kakaobot.ui.screen.ClickNavScreen
 import dev.scsc.init.kakaobot.ui.screen.HomeObj
 import dev.scsc.init.kakaobot.ui.screen.HomeScreen
+import dev.scsc.init.kakaobot.ui.screen.friend.AddFriendObj
+import dev.scsc.init.kakaobot.ui.screen.friend.AddFriendScreen
+import dev.scsc.init.kakaobot.ui.screen.helper.ClickNavObj
+import dev.scsc.init.kakaobot.ui.screen.helper.ClickNavScreen
+import dev.scsc.init.kakaobot.ui.screen.regularchat.CreateRegularChatObj
+import dev.scsc.init.kakaobot.ui.screen.regularchat.CreateRegularChatScreen
 import dev.scsc.init.kakaobot.util.AccessibilityUtil
 import kotlinx.coroutines.launch
 
@@ -105,6 +107,21 @@ fun App() {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     Text(
+                        "Regular Chat",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("101001: CreateRegularChatScreen") },
+                        selected = false,
+                        onClick = {
+                            navController.navigate(CreateRegularChatObj)
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Text(
                         "Friend",
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.titleMedium
@@ -116,11 +133,6 @@ fun App() {
                             navController.navigate(AddFriendObj)
                             scope.launch { drawerState.close() }
                         }
-                    )
-                    NavigationDrawerItem(
-                        label = { Text("103002: CheckFriend") },
-                        selected = false,
-                        onClick = { /* Handle click */ }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -172,6 +184,7 @@ fun App() {
                     .padding(12.dp)
             ) {
                 composable<HomeObj> { HomeScreen() }
+                composable<CreateRegularChatObj> { CreateRegularChatScreen() }
                 composable<AddFriendObj> { AddFriendScreen() }
                 composable<ClickNavObj> { ClickNavScreen() }
             }

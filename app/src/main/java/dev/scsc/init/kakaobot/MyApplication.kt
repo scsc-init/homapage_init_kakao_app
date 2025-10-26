@@ -15,7 +15,7 @@ class MyApplication : Application() {
         createNotificationChannel()
     }
 
-    var performDelay: Long = 100
+    var performDelay: Long = 150
         set(value) {
             if (value > 0) field = value
         }

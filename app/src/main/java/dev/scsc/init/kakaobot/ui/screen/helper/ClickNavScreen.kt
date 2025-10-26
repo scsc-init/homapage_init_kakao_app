@@ -1,4 +1,4 @@
-package dev.scsc.init.kakaobot.ui.screen
+package dev.scsc.init.kakaobot.ui.screen.helper
 
 import android.content.Intent
 import android.os.Parcelable

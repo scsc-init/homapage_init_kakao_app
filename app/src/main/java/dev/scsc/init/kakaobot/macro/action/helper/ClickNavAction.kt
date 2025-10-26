@@ -1,4 +1,4 @@
-package dev.scsc.init.kakaobot.macro.action
+package dev.scsc.init.kakaobot.macro.action.helper
 
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.macro.MacroAction
