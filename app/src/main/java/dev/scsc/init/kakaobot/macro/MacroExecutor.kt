@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
@@ -31,6 +32,7 @@ class MacroExecutor(private val service: AccessibilityService) {
     @Volatile
     var isBusy: Boolean = false
         private set
+
 
     fun executeMacro(macroActionType: MacroActionType, extras: Bundle?) {
         if (isBusy) {
@@ -53,8 +55,8 @@ class MacroExecutor(private val service: AccessibilityService) {
                     var attempts = 0
                     val maxAttempts = 30 // 3 seconds
                     while (attempts < maxAttempts) {
-                        kotlinx.coroutines.delay(100)
-                        if (rootInActiveWindow?.packageName == "com.kakao.talk") {
+                        delay(100)
+                        if (service.rootInActiveWindow?.packageName == "com.kakao.talk") {
                             break
                         }
                         attempts++
@@ -96,13 +98,9 @@ class MacroExecutor(private val service: AccessibilityService) {
         }
     }
 
-    val rootInActiveWindow: AccessibilityNodeInfo? get() = service.rootInActiveWindow
-    val currentTabTitle: MainTabTitle?
-        get() {
-            val tabNode = rootInActiveWindow?.getChild(0)?.getChild(0)
-            if (tabNode == null || tabNode.className != "android.widget.TextView") return null
-            return tabNode.text.toString().toMainTabTitleOrNull()
-        }
+    val rootInActiveWindow: AccessibilityNodeInfo
+        get() = service.rootInActiveWindow
+            ?: throw IllegalStateException("cannot retrieve rootInActiveWindow")
 
     enum class TextMatchOption {
         CONTAINS,
@@ -118,16 +116,13 @@ class MacroExecutor(private val service: AccessibilityService) {
      * Searches the subtree rooted at [rootNode] for all nodes whose [searchByOption] attribute
      * matches the given [searchText] based on the [matchOption].
      *
-     * This function strictly checks the 'text' property and explicitly ignores
-     * the 'contentDescription' property (which corresponds to 'desc' in the XML structure).
-     *
      * @param rootNode The starting node for the search (e.g., the root view).
      * @param searchText The text to search for (case-sensitive by default).
      * @param matchOption The criteria for matching the text (defaults to CONTAINS).
      * @param searchByOption The criteria for target attribute (defaults to TEXT).
      * @return A list of AccessibilityNodeInfo objects whose 'text' matches the search string.
      */
-    fun findNodeInfosByText(
+    fun findNodesByText(
         rootNode: AccessibilityNodeInfo?,
         searchText: String,
         matchOption: TextMatchOption = TextMatchOption.EXACT,
@@ -168,15 +163,41 @@ class MacroExecutor(private val service: AccessibilityService) {
         return foundNodes
     }
 
+    /**
+     * Searches the subtree rooted at [rootNode] for all nodes whose [searchByOption] attribute
+     * matches the given [searchText] based on the [matchOption].
+     *
+     * @param rootNode The starting node for the search (e.g., the root view).
+     * @param searchText The text to search for (case-sensitive by default).
+     * @param matchOption The criteria for matching the text (defaults to CONTAINS).
+     * @param searchByOption The criteria for target attribute (defaults to TEXT).
+     * @param checkUniqueness The criteria for asserting uniqueness (defaults to true).
+     * @return A AccessibilityNodeInfo objects whose 'text' matches the search string.
+     * @throws IllegalStateException if no nodes are found or multiple nodes are found when [checkUniqueness] is true
+     */
+    fun findNodeByText(
+        rootNode: AccessibilityNodeInfo?,
+        searchText: String,
+        matchOption: TextMatchOption = TextMatchOption.EXACT,
+        searchByOption: SearchByOption = SearchByOption.TEXT,
+        checkUniqueness: Boolean = true
+    ): AccessibilityNodeInfo {
+        val nodes = findNodesByText(rootNode, searchText, matchOption, searchByOption)
+        if (checkUniqueness) {
+            if (nodes.size > 1) throw IllegalStateException("multiple nodes are found by findNodeByText; searchText=${searchText}")
+        }
+        return nodes.getOrNull(0)
+            ?: throw IllegalStateException("no nodes are found by findNodeByText; searchText=${searchText}")
+    }
+
     fun findBottomTabNavNode(title: MainTabTitle): AccessibilityNodeInfo? {
-        val root = rootInActiveWindow ?: return null
+        val root = rootInActiveWindow
         if (root.childCount != 2) return null
         val nav = root.getChild(1) ?: return null
-        val textNodes = findNodeInfosByText(
+        val textNodes = findNodesByText(
             nav, title.str, TextMatchOption.CONTAINS,
             SearchByOption.DESC
         )
-        Log.d("test", "${textNodes.size}")
         if (textNodes.size != 1) return null
         val textNode = textNodes.getOrNull(0) ?: return null
         return findNearestClickableParent(textNode)
@@ -192,6 +213,26 @@ class MacroExecutor(private val service: AccessibilityService) {
             cur = cur.parent
         }
         return null
+    }
+
+    val performDelay
+        get() = myApplication?.performDelay
+            ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
+
+    val performRetry
+        get() = myApplication?.performRetry
+            ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
+
+    suspend fun retryUntilTrue(f: () -> Boolean) {
+        for (i in 0..performRetry) {
+            delay(performDelay * i)
+            val res = runCatching { f() }.getOrElse {
+                it.printStackTrace()
+                false
+            }
+            if (res) return
+            Log.d("debug", "retry $i")
+        }
     }
 }
 

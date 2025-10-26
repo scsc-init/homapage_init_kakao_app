@@ -15,6 +15,16 @@ class MyApplication : Application() {
         createNotificationChannel()
     }
 
+    var performDelay: Long = 100
+        set(value) {
+            if (value > 0) field = value
+        }
+
+    var performRetry: Int = 5
+        set(value) {
+            if (value > 0) field = value
+        }
+
     private fun createNotificationChannel() {
         val name: CharSequence = "My Notification Channel" // User-visible name
         val description = "Channel for my app's notifications"

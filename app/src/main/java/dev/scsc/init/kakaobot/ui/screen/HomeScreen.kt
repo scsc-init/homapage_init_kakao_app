@@ -50,8 +50,9 @@ fun HomeScreen() {
     Column(modifier = Modifier.fillMaxSize()) {
         Text("HomeScreen", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         PushGrantButton(Modifier.fillMaxWidth()) { requestPushPermission() }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

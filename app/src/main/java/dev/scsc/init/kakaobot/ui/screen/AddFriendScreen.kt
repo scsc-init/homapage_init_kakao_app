@@ -69,8 +69,8 @@ fun AddFriendScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         TextField(
-            value = name,
-            onValueChange = { name = it },
+            value = phone,
+            onValueChange = { phone = it },
             label = { Text("Enter phone number") },
             modifier = Modifier.fillMaxWidth(),
         )
