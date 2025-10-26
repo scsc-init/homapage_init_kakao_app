@@ -33,7 +33,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,7 +44,6 @@ import dev.scsc.init.kakaobot.ui.screen.ClickNavScreen
 import dev.scsc.init.kakaobot.ui.screen.HomeObj
 import dev.scsc.init.kakaobot.ui.screen.HomeScreen
 import dev.scsc.init.kakaobot.util.AccessibilityUtil
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
@@ -81,13 +79,10 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun App(
-    coroutineScope: CoroutineScope = rememberCoroutineScope()
-) {
+fun App() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    LocalContext.current
 
     ModalNavigationDrawer(
         drawerContent = {
@@ -104,7 +99,7 @@ fun App(
                         selected = false,
                         onClick = {
                             navController.navigate(HomeObj)
-                            coroutineScope.launch { drawerState.close() }
+                            scope.launch { drawerState.close() }
                         }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -119,7 +114,7 @@ fun App(
                         selected = false,
                         onClick = {
                             navController.navigate(AddFriendObj)
-                            coroutineScope.launch { drawerState.close() }
+                            scope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
@@ -139,7 +134,7 @@ fun App(
                         selected = false,
                         onClick = {
                             navController.navigate(ClickNavObj)
-                            coroutineScope.launch { drawerState.close() }
+                            scope.launch { drawerState.close() }
                         }
                     )
 

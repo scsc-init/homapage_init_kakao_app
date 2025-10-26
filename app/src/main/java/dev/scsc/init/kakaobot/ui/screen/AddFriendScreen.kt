@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.scsc.init.kakaobot.MyAccessibilityService
 import dev.scsc.init.kakaobot.macro.MacroActionType
@@ -47,7 +49,10 @@ fun AddFriendScreen() {
             ).show()
             return
         }
-        if (name.isBlank() || phone.isBlank()) return
+        if (name.isBlank() || phone.isBlank()) {
+            Toast.makeText(context, "Please enter both name and phone.", Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(context, MyAccessibilityService::class.java)
         intent.action = MyAccessibilityService.ACTION_RUN_MACRO
         intent.putExtra("macroActionType", MacroActionType.ADD_FRIEND as Parcelable)
@@ -73,6 +78,8 @@ fun AddFriendScreen() {
             onValueChange = { phone = it },
             label = { Text("Enter phone number") },
             modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         )
         Spacer(modifier = Modifier.height(16.dp))
 

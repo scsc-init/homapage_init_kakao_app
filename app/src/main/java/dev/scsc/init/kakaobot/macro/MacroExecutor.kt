@@ -223,16 +223,18 @@ class MacroExecutor(private val service: AccessibilityService) {
         get() = myApplication?.performRetry
             ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
 
-    suspend fun retryUntilTrue(f: () -> Boolean) {
+    suspend fun retryUntilTrue(throwOnFailure: Boolean = false, f: () -> Boolean): Boolean {
         for (i in 0..performRetry) {
             delay(performDelay * i)
             val res = runCatching { f() }.getOrElse {
                 it.printStackTrace()
                 false
             }
-            if (res) return
-            Log.d("debug", "retry $i")
+            if (res) return true
+            Log.d("MacroExecutor", "retry $i")
         }
+        if (throwOnFailure) throw IllegalStateException("retryUntilTrue exhausted ($performRetry)")
+        return false
     }
 }
 

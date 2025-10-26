@@ -46,7 +46,10 @@ fun ClickNavScreen() {
             ).show()
             return
         }
-        if (text.isBlank()) return
+        if (text.isBlank()) {
+            Toast.makeText(context, "Please enter text to find.", Toast.LENGTH_LONG).show()
+            return
+        }
         val intent = Intent(context, MyAccessibilityService::class.java)
         intent.action = MyAccessibilityService.ACTION_RUN_MACRO
         intent.putExtra("macroActionType", MacroActionType.CLICK_NAV as Parcelable)
