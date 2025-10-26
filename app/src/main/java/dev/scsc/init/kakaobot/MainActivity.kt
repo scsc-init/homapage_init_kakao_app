@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.scsc.init.kakaobot.ui.screen.HomeObj
 import dev.scsc.init.kakaobot.ui.screen.HomeScreen
@@ -85,6 +86,7 @@ fun App() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    val currentDestination = navController.currentBackStackEntryAsState().value?.destination
 
     ModalNavigationDrawer(
         drawerContent = {
@@ -98,7 +100,7 @@ fun App() {
 
                     NavigationDrawerItem(
                         label = { Text("Home") },
-                        selected = false,
+                        selected = currentDestination?.route == HomeObj::class.qualifiedName,
                         onClick = {
                             navController.navigate(HomeObj)
                             scope.launch { drawerState.close() }
@@ -113,7 +115,7 @@ fun App() {
                     )
                     NavigationDrawerItem(
                         label = { Text("101001: CreateRegularChatScreen") },
-                        selected = false,
+                        selected = currentDestination?.route == CreateRegularChatObj::class.qualifiedName,
                         onClick = {
                             navController.navigate(CreateRegularChatObj)
                             scope.launch { drawerState.close() }
@@ -128,7 +130,7 @@ fun App() {
                     )
                     NavigationDrawerItem(
                         label = { Text("103001: AddFriend") },
-                        selected = false,
+                        selected = currentDestination?.route == AddFriendObj::class.qualifiedName,
                         onClick = {
                             navController.navigate(AddFriendObj)
                             scope.launch { drawerState.close() }
@@ -143,7 +145,7 @@ fun App() {
                     )
                     NavigationDrawerItem(
                         label = { Text("ClickNav") },
-                        selected = false,
+                        selected = currentDestination?.route == ClickNavObj::class.qualifiedName,
                         onClick = {
                             navController.navigate(ClickNavObj)
                             scope.launch { drawerState.close() }

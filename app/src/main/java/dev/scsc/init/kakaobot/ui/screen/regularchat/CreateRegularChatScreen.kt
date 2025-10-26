@@ -87,7 +87,14 @@ fun CreateRegularChatScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { friends.add(friendName) },
+            onClick = {
+                if (friendName.isNotBlank()) {
+                    friends.add(friendName)
+                    friendName = ""
+                } else {
+                    Toast.makeText(context, "Please enter a friend name", Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Add Friend")
@@ -106,7 +113,7 @@ fun CreateRegularChatScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { onClick(roomName, friends.toMutableList() as ArrayList<String>) },
+            onClick = { onClick(roomName, ArrayList(friends)) },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Run Macro")

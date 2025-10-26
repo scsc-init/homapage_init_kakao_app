@@ -218,11 +218,11 @@ class MacroExecutor(private val service: AccessibilityService) {
         )
         if (textNodes.size != 1) return null
         val textNode = textNodes.getOrNull(0) ?: return null
-        return findNearestClickableParent(textNode)
+        return findNearestClickable(textNode)
     }
 
 
-    fun findNearestClickableParent(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+    fun findNearestClickable(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         var cur: AccessibilityNodeInfo? = node
         while (cur != null) {
             if (cur.isClickable) {
@@ -254,6 +254,19 @@ class MacroExecutor(private val service: AccessibilityService) {
         }
         if (throwOnFailure) throw IllegalStateException("retryUntilTrue exhausted ($performRetry)")
         return false
+    }
+
+    suspend fun clickByText(text: String, option: SearchByOption, throwOnFailure: Boolean = false) {
+        retryUntilTrue(throwOnFailure) {
+            val btn = findNearestClickable(
+                findNodeByText(
+                    rootInActiveWindow,
+                    text,
+                    searchByOption = option
+                )
+            ) ?: throw IllegalStateException("cannot find clickable; text=$text")
+            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        }
     }
 }
 

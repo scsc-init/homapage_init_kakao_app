@@ -11,24 +11,8 @@ class CreateRegularChatAction(val roomName: String, val friends: List<String>) :
     override suspend fun execute(executor: MacroExecutor) {
         // 채팅 탭 이동
         ClickNavAction(MainTabTitle.CHAT).execute(executor)
-        // 새로운 채팅 버튼 클릭
-        executor.retryUntilTrue {
-            val btn = executor.findNodeByText(
-                executor.rootInActiveWindow,
-                "새로운 채팅",
-                searchByOption = MacroExecutor.SearchByOption.DESC
-            )
-            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
-        // 일반채팅 버튼 클릭
-        executor.retryUntilTrue {
-            val btn = executor.findNodeByText(
-                executor.rootInActiveWindow,
-                "일반채팅",
-                searchByOption = MacroExecutor.SearchByOption.DESC
-            )
-            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
+        executor.clickByText("새로운 채팅", MacroExecutor.SearchByOption.DESC)
+        executor.clickByText("일반채팅", MacroExecutor.SearchByOption.DESC)
         friends.forEach {
             // 친구 이름 입력
             executor.retryUntilTrue {
@@ -44,34 +28,12 @@ class CreateRegularChatAction(val roomName: String, val friends: List<String>) :
                 edittext.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, bundle)
             }
             // 친구 선택
-            executor.retryUntilTrue {
-                val btn = executor.findNearestClickableParent(
-                    executor.findNodeByText(
-                        executor.rootInActiveWindow,
-                        it,
-                        searchByOption = MacroExecutor.SearchByOption.DESC
-                    )
-                ) ?: throw IllegalStateException("cannot click friend")
-                btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            }
-            // 입력한 내용 삭제 버튼 클릭
-            executor.retryUntilTrue {
-                val btn = executor.findNodeByText(
-                    executor.rootInActiveWindow,
-                    "입력한 내용 삭제",
-                    searchByOption = MacroExecutor.SearchByOption.DESC
-                )
-                btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            }
+            executor.clickByText(it, MacroExecutor.SearchByOption.DESC)
+            executor.clickByText("입력한 내용 삭제", MacroExecutor.SearchByOption.DESC)
         }
-        // 다음 버튼 클릭
-        executor.retryUntilTrue {
-            val btn = executor.findNodeByText(
-                executor.rootInActiveWindow,
-                "다음",
-            )
-            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
+        executor.clickByText("다음", MacroExecutor.SearchByOption.TEXT)
+        // 친구 목록이 동일한 채팅방이 이미 존재하면 새로운 채팅방 만들기 버튼 클릭
+        executor.clickByText("새로운 채팅방 만들기", MacroExecutor.SearchByOption.TEXT)
         // 채팅방 이름 입력
         executor.retryUntilTrue {
             val bundle = Bundle()
@@ -83,14 +45,7 @@ class CreateRegularChatAction(val roomName: String, val friends: List<String>) :
             node.text == friends.sorted().joinToString()
                     && node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, bundle)
         }
-        // 확인 버튼 클릭
-        executor.retryUntilTrue {
-            val btn = executor.findNodeByText(
-                executor.rootInActiveWindow,
-                "확인",
-            )
-            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
+        executor.clickByText("확인", MacroExecutor.SearchByOption.TEXT)
         // 첫 메시지 입력
         executor.retryUntilTrue {
             val bundle = Bundle()
@@ -102,14 +57,6 @@ class CreateRegularChatAction(val roomName: String, val friends: List<String>) :
             node.className == "android.widget.MultiAutoCompleteTextView"
                     && node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, bundle)
         }
-        // 전송 버튼 클릭
-        executor.retryUntilTrue {
-            val btn = executor.findNodeByText(
-                executor.rootInActiveWindow,
-                "전송",
-                searchByOption = MacroExecutor.SearchByOption.DESC
-            )
-            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
+        executor.clickByText("전송", MacroExecutor.SearchByOption.DESC)
     }
 }

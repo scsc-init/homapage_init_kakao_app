@@ -44,7 +44,11 @@ fun HomeScreen() {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
                 Toast
-                    .makeText(context, "Push permission has already granted", Toast.LENGTH_LONG)
+                    .makeText(
+                        context,
+                        "Push permission has already been granted",
+                        Toast.LENGTH_LONG
+                    )
                     .show()
             }
         }
