@@ -237,27 +237,30 @@ class MacroExecutor(private val service: AccessibilityService) {
         get() = myApplication?.performDelay
             ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
 
-    val performRetry
-        get() = myApplication?.performRetry
+    val performTrials
+        get() = myApplication?.performTrials
             ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
 
     suspend fun retryUntilTrue(throwOnFailure: Boolean = false, f: () -> Boolean): Boolean {
-        delay(performDelay)
-        for (i in 0..performRetry) {
+        for (i in 1..performTrials) {
+            Log.d("MacroExecutor", "try $i")
             delay(performDelay * i)
             val res = runCatching { f() }.getOrElse {
                 it.printStackTrace()
                 false
             }
             if (res) return true
-            Log.d("MacroExecutor", "retry $i")
         }
-        if (throwOnFailure) throw IllegalStateException("retryUntilTrue exhausted ($performRetry)")
+        if (throwOnFailure) throw IllegalStateException("retryUntilTrue exhausted ($performTrials)")
         return false
     }
 
-    suspend fun clickByText(text: String, option: SearchByOption, throwOnFailure: Boolean = false) {
-        retryUntilTrue(throwOnFailure) {
+    suspend fun clickByText(
+        text: String,
+        option: SearchByOption,
+        throwOnFailure: Boolean = false
+    ): Boolean {
+        return retryUntilTrue(throwOnFailure) {
             val btn = findNearestClickable(
                 findNodeByText(
                     rootInActiveWindow,

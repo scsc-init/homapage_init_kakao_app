@@ -20,7 +20,7 @@ class MyApplication : Application() {
             if (value > 0) field = value
         }
 
-    var performRetry: Int = 5
+    var performTrials: Int = 5
         set(value) {
             if (value > 0) field = value
         }
