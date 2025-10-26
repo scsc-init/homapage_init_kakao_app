@@ -26,15 +26,14 @@ import dev.scsc.init.kakaobot.util.AccessibilityUtil
 import kotlinx.serialization.Serializable
 
 @Serializable
-object AddFriendObj
+object ClickNavObj
 
 @Composable
-fun AddFriendScreen() {
+fun ClickNavScreen() {
     val context = LocalContext.current
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var text by remember { mutableStateOf("") }
 
-    fun onClick(name: String, phone: String) {
+    fun onClick(text: String) {
         if (!AccessibilityUtil.isAccessibilityServiceEnabled(
                 context,
                 MyAccessibilityService::class.java,
@@ -47,37 +46,28 @@ fun AddFriendScreen() {
             ).show()
             return
         }
-        if (name.isBlank() || phone.isBlank()) return
+        if (text.isBlank()) return
         val intent = Intent(context, MyAccessibilityService::class.java)
         intent.action = MyAccessibilityService.ACTION_RUN_MACRO
-        intent.putExtra("macroActionType", MacroActionType.ADD_FRIEND as Parcelable)
-        intent.putExtra("name", name)
-        intent.putExtra("phone", phone)
+        intent.putExtra("macroActionType", MacroActionType.CLICK_NAV as Parcelable)
+        intent.putExtra("targetText", text)
         context.startService(intent)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("AddFriendScreen", style = MaterialTheme.typography.titleLarge)
+        Text("ClickNavScreen", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(16.dp))
 
         TextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Enter name") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Enter phone number") },
+            value = text,
+            onValueChange = { text = it },
+            label = { Text("Enter text to find") },
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { onClick(name, phone) },
+            onClick = { onClick(text) },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Run Macro")

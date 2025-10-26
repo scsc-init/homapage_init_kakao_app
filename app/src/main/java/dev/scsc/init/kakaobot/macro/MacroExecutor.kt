@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.MyApplication
 import dev.scsc.init.kakaobot.macro.action.ClickNavAction
+import dev.scsc.init.kakaobot.macro.action.friend.AddFriendAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -77,10 +78,14 @@ class MacroExecutor(private val service: AccessibilityService) {
                     MacroActionType.CLICK_NAV -> {
                         val text = extras?.getString("targetText") ?: return@launch
                         val title = text.toMainTabTitleOrNull() ?: return@launch
-
                         ClickNavAction(title).execute(this@MacroExecutor)
                     }
 
+                    MacroActionType.ADD_FRIEND -> {
+                        val name = extras?.getString("name") ?: return@launch
+                        val phone = extras.getString("phone") ?: return@launch
+                        AddFriendAction(name, phone).execute(this@MacroExecutor)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -193,7 +198,8 @@ class MacroExecutor(private val service: AccessibilityService) {
 
 @Parcelize
 enum class MacroActionType : Parcelable {
-    CLICK_NAV
+    CLICK_NAV,
+    ADD_FRIEND
 }
 
 enum class MainTabTitle(val str: String) {

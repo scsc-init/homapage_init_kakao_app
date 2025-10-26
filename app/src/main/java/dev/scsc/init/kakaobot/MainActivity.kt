@@ -40,6 +40,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dev.scsc.init.kakaobot.ui.screen.AddFriendObj
 import dev.scsc.init.kakaobot.ui.screen.AddFriendScreen
+import dev.scsc.init.kakaobot.ui.screen.ClickNavObj
+import dev.scsc.init.kakaobot.ui.screen.ClickNavScreen
 import dev.scsc.init.kakaobot.ui.screen.HomeObj
 import dev.scsc.init.kakaobot.ui.screen.HomeScreen
 import dev.scsc.init.kakaobot.util.AccessibilityUtil
@@ -113,7 +115,7 @@ fun App(
                         style = MaterialTheme.typography.titleMedium
                     )
                     NavigationDrawerItem(
-                        label = { Text("AddFriendScreen") },
+                        label = { Text("103001: AddFriend") },
                         selected = false,
                         onClick = {
                             navController.navigate(AddFriendObj)
@@ -121,11 +123,25 @@ fun App(
                         }
                     )
                     NavigationDrawerItem(
-                        label = { Text("Item 2") },
+                        label = { Text("103002: CheckFriend") },
                         selected = false,
                         onClick = { /* Handle click */ }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Text(
+                        "Helper",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("ClickNav") },
+                        selected = false,
+                        onClick = {
+                            navController.navigate(ClickNavObj)
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
 
                     Spacer(Modifier.height(12.dp))
                 }
@@ -162,6 +178,7 @@ fun App(
             ) {
                 composable<HomeObj> { HomeScreen() }
                 composable<AddFriendObj> { AddFriendScreen() }
+                composable<ClickNavObj> { ClickNavScreen() }
             }
         }
     }
