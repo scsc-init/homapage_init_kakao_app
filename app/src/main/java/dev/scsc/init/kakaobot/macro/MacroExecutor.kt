@@ -4,13 +4,17 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.scsc.init.kakaobot.MyApplication
-import dev.scsc.init.kakaobot.macro.action.ClickNavAction
+import dev.scsc.init.kakaobot.macro.action.friend.AddFriendAction
+import dev.scsc.init.kakaobot.macro.action.helper.ClickNavAction
+import dev.scsc.init.kakaobot.macro.action.regularchat.CreateRegularChatAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
@@ -29,6 +33,7 @@ class MacroExecutor(private val service: AccessibilityService) {
     @Volatile
     var isBusy: Boolean = false
         private set
+
 
     fun executeMacro(macroActionType: MacroActionType, extras: Bundle?) {
         if (isBusy) {
@@ -51,8 +56,8 @@ class MacroExecutor(private val service: AccessibilityService) {
                     var attempts = 0
                     val maxAttempts = 30 // 3 seconds
                     while (attempts < maxAttempts) {
-                        kotlinx.coroutines.delay(100)
-                        if (rootInActiveWindow?.packageName == "com.kakao.talk") {
+                        delay(100)
+                        if (service.rootInActiveWindow?.packageName == "com.kakao.talk") {
                             break
                         }
                         attempts++
@@ -73,13 +78,29 @@ class MacroExecutor(private val service: AccessibilityService) {
                 }
                 // Execute macroAction
                 when (macroActionType) {
-                    MacroActionType.CLICK_TEXT -> {
-                        val text = extras?.getString("targetText") ?: return@launch
-                        val title = text.toMainTabTitleOrNull() ?: return@launch
-
+                    MacroActionType.CLICK_NAV -> {
+                        val text = extras?.getString("targetText")
+                            ?: throw IllegalArgumentException("cannot get targetText")
+                        val title = text.toMainTabTitleOrNull()
+                            ?: throw IllegalArgumentException("invalid tab name")
                         ClickNavAction(title).execute(this@MacroExecutor)
                     }
 
+                    MacroActionType.ADD_FRIEND -> {
+                        val name = extras?.getString("name")
+                            ?: throw IllegalArgumentException("cannot get name")
+                        val phone = extras.getString("phone")
+                            ?: throw IllegalArgumentException("cannot get phone")
+                        AddFriendAction(name, phone).execute(this@MacroExecutor)
+                    }
+
+                    MacroActionType.CREATE_REGULAR_CHAT -> {
+                        val roomName = extras?.getString("roomName")
+                            ?: throw IllegalArgumentException("cannot get roomName")
+                        val friends = extras.getStringArrayList("friends")
+                            ?: throw IllegalArgumentException("cannot get friends")
+                        CreateRegularChatAction(roomName, friends).execute(this@MacroExecutor)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -90,47 +111,59 @@ class MacroExecutor(private val service: AccessibilityService) {
         }
     }
 
-    val rootInActiveWindow: AccessibilityNodeInfo? get() = service.rootInActiveWindow
-    val currentTabTitle: MainTabTitle?
-        get() {
-            val tabNode = rootInActiveWindow?.getChild(0)?.getChild(0)
-            if (tabNode == null || tabNode.className != "android.widget.TextView") return null
-            return tabNode.text.toString().toMainTabTitleOrNull()
-        }
+    val rootInActiveWindow: AccessibilityNodeInfo
+        get() = service.rootInActiveWindow
+            ?: throw IllegalStateException("cannot retrieve rootInActiveWindow")
+
+    val focusInputNode: AccessibilityNodeInfo
+        get() = service.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            ?: throw IllegalStateException("cannot retrieve focusInputNode")
+
 
     enum class TextMatchOption {
         CONTAINS,
         EXACT
     }
 
+    enum class SearchByOption {
+        TEXT,
+        DESC
+    }
+
     /**
-     * Searches the subtree rooted at [rootNode] for all nodes whose 'text' attribute
+     * Searches the subtree rooted at [rootNode] for all nodes whose [searchByOption] attribute
      * matches the given [searchText] based on the [matchOption].
-     *
-     * This function strictly checks the 'text' property and explicitly ignores
-     * the 'contentDescription' property (which corresponds to 'desc' in the XML structure).
      *
      * @param rootNode The starting node for the search (e.g., the root view).
      * @param searchText The text to search for (case-sensitive by default).
      * @param matchOption The criteria for matching the text (defaults to CONTAINS).
+     * @param searchByOption The criteria for target attribute (defaults to TEXT).
      * @return A list of AccessibilityNodeInfo objects whose 'text' matches the search string.
      */
-    fun findNodeInfosByText(
+    fun findNodesByText(
         rootNode: AccessibilityNodeInfo?,
         searchText: String,
-        matchOption: TextMatchOption = TextMatchOption.EXACT
+        matchOption: TextMatchOption = TextMatchOption.EXACT,
+        searchByOption: SearchByOption = SearchByOption.TEXT
     ): List<AccessibilityNodeInfo> {
         val foundNodes = mutableListOf<AccessibilityNodeInfo>()
 
         // Internal recursive function to perform a Depth-First Search (DFS)
         fun searchRecursively(node: AccessibilityNodeInfo?) {
             if (node == null || searchText.isEmpty()) return
-            val nodeText = node.text?.toString()
+            val searchTarget = when (searchByOption) {
+                SearchByOption.TEXT -> node.text?.toString()
+                SearchByOption.DESC -> node.contentDescription?.toString()
+            }
 
-            if (nodeText != null) {
+            if (searchTarget != null) {
                 val isMatch = when (matchOption) {
-                    TextMatchOption.CONTAINS -> nodeText.contains(searchText, ignoreCase = false)
-                    TextMatchOption.EXACT -> nodeText == searchText
+                    TextMatchOption.CONTAINS -> searchTarget.contains(
+                        searchText,
+                        ignoreCase = false
+                    )
+
+                    TextMatchOption.EXACT -> searchTarget == searchText
                 }
                 if (isMatch) {
                     foundNodes.add(node)
@@ -148,18 +181,48 @@ class MacroExecutor(private val service: AccessibilityService) {
         return foundNodes
     }
 
+    /**
+     * Searches the subtree rooted at [rootNode] for all nodes whose [searchByOption] attribute
+     * matches the given [searchText] based on the [matchOption].
+     *
+     * @param rootNode The starting node for the search (e.g., the root view).
+     * @param searchText The text to search for (case-sensitive by default).
+     * @param matchOption The criteria for matching the text (defaults to CONTAINS).
+     * @param searchByOption The criteria for target attribute (defaults to TEXT).
+     * @param checkUniqueness The criteria for asserting uniqueness (defaults to true).
+     * @return A AccessibilityNodeInfo objects whose 'text' matches the search string.
+     * @throws IllegalStateException if no nodes are found or multiple nodes are found when [checkUniqueness] is true
+     */
+    fun findNodeByText(
+        rootNode: AccessibilityNodeInfo?,
+        searchText: String,
+        matchOption: TextMatchOption = TextMatchOption.EXACT,
+        searchByOption: SearchByOption = SearchByOption.TEXT,
+        checkUniqueness: Boolean = true
+    ): AccessibilityNodeInfo {
+        val nodes = findNodesByText(rootNode, searchText, matchOption, searchByOption)
+        if (checkUniqueness) {
+            if (nodes.size > 1) throw IllegalStateException("multiple nodes are found by findNodeByText; searchText=${searchText}")
+        }
+        return nodes.getOrNull(0)
+            ?: throw IllegalStateException("no nodes are found by findNodeByText; searchText=${searchText}")
+    }
+
     fun findBottomTabNavNode(title: MainTabTitle): AccessibilityNodeInfo? {
-        val root = rootInActiveWindow ?: return null
+        val root = rootInActiveWindow
         if (root.childCount != 2) return null
         val nav = root.getChild(1) ?: return null
-        val textNodes = findNodeInfosByText(nav, title.str)
+        val textNodes = findNodesByText(
+            nav, title.str, TextMatchOption.CONTAINS,
+            SearchByOption.DESC
+        )
         if (textNodes.size != 1) return null
         val textNode = textNodes.getOrNull(0) ?: return null
-        return findNearestClickableParent(textNode)
+        return findNearestClickable(textNode)
     }
 
 
-    fun findNearestClickableParent(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+    fun findNearestClickable(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         var cur: AccessibilityNodeInfo? = node
         while (cur != null) {
             if (cur.isClickable) {
@@ -169,20 +232,61 @@ class MacroExecutor(private val service: AccessibilityService) {
         }
         return null
     }
+
+    val performDelay
+        get() = myApplication?.performDelay
+            ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
+
+    val performTrials
+        get() = myApplication?.performTrials
+            ?: throw IllegalStateException("cannot retrieve myApplication on MacroExecutor")
+
+    suspend fun retryUntilTrue(throwOnFailure: Boolean = false, f: () -> Boolean): Boolean {
+        for (i in 1..performTrials) {
+            Log.d("MacroExecutor", "try $i")
+            delay(performDelay * i)
+            val res = runCatching { f() }.getOrElse {
+                it.printStackTrace()
+                false
+            }
+            if (res) return true
+        }
+        if (throwOnFailure) throw IllegalStateException("retryUntilTrue exhausted ($performTrials)")
+        return false
+    }
+
+    suspend fun clickByText(
+        text: String,
+        option: SearchByOption,
+        throwOnFailure: Boolean = false
+    ): Boolean {
+        return retryUntilTrue(throwOnFailure) {
+            val btn = findNearestClickable(
+                findNodeByText(
+                    rootInActiveWindow,
+                    text,
+                    searchByOption = option
+                )
+            ) ?: throw IllegalStateException("cannot find clickable; text=$text")
+            btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        }
+    }
 }
 
 
 @Parcelize
 enum class MacroActionType : Parcelable {
-    CLICK_TEXT
+    CLICK_NAV,
+    CREATE_REGULAR_CHAT,
+    ADD_FRIEND
 }
 
 enum class MainTabTitle(val str: String) {
-    FRIEND("친구"),
-    CHAT("채팅"),
+    FRIEND("친구 탭"),
+    CHAT("채팅 탭"),
     OPEN_CHAT("오픈채팅"),
-    SHOP("쇼핑"),
-    MORE("더보기")
+    SHOP("쇼핑 탭"),
+    MORE("더보기 탭")
 }
 
 fun String.toMainTabTitleOrNull(): MainTabTitle? = MainTabTitle.entries.find { it.str == this }

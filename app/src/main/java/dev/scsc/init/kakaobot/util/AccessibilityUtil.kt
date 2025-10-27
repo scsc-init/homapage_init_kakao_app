@@ -36,10 +36,9 @@ object AccessibilityUtil {
 
         val desc = node.contentDescription ?: ""
         val text = node.text ?: ""
-        val id = node.viewIdResourceName ?: ""
         val cls = node.className ?: ""
 
-        sb.append("$indent<node class=\"$cls\" text=\"$text\" desc=\"$desc\" id=\"$id\" clickable=\"${node.isClickable}\">\n")
+        sb.append("$indent<node class=\"$cls\" text=\"$text\" desc=\"$desc\" clickable=\"${node.isClickable}\">\n")
 
         for (i in 0 until node.childCount) {
             sb.append(dumpNodeToXml(node.getChild(i), "$indent  "))
